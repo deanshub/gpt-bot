@@ -1,10 +1,13 @@
 import { openai } from "@ai-sdk/openai";
 import {
   generateText,
+  tool,
 } from "ai";
 import { getBufferedMessages } from "./bufferMessages";
 import OpenAI from "openai";
 import { getOrThrow } from "./utils";
+import { z } from "zod";
+import { promptScheduleMessage } from "./promptScheduleMessage";
 
 const openaiCore = new OpenAI({
     apiKey: getOrThrow("OPENAI_API_KEY"),
@@ -43,6 +46,19 @@ export async function talk({chatId}:{chatId: number}): Promise<string>{
     const response = await generateText({
         model: openai("gpt-4o"),
         messages,
+        tools: {
+          scheduleMessage: tool({
+            description: "Schedule a message to be sent later",
+            parameters: z.object({
+              message: z.string().describe("The message to be sent"),
+              minutesInFuture: z.optional(z.number().min(1)).describe("The number of minutes in the future to schedule the message"),
+              scheduleDate: z.optional(z.date()).describe("The date and time to schedule the message"),
+            }),
+            execute: async ({ message, minutesInFuture, scheduleDate }) => {
+              await promptScheduleMessage(chatId, message, minutesInFuture, scheduleDate)
+            },
+          })
+        }
     })
 
     return response.text;

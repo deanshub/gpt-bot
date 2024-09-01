@@ -7,7 +7,8 @@
     "dev": "bun --watch index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node-schedule": "^2.1.7"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -16,7 +17,10 @@
     "@ai-sdk/openai": "^0.0.54",
     "@grammyjs/files": "^1.1.1",
     "ai": "^3.3.21",
+    "date-fns": "^3.6.0",
     "grammy": "^1.29.0",
-    "openai": "^4.57.0"
+    "node-schedule": "^2.1.1",
+    "openai": "^4.57.0",
+    "zod": "^3.23.8"
   }
 }
