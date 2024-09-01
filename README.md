@@ -1,4 +1,4 @@
-# shopping-bot
+# gpt-bot
 
 To install dependencies:
 
