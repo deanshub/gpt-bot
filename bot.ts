@@ -2,20 +2,23 @@ import { Api, Bot, Context, type RawApi } from "grammy";
 import { getOrThrow } from "./utils";
 import { getFullName } from "./getFullName";
 import { authorizedUsers, getAdminChatId } from "./authorizedUsers";
-import { bufferMessages } from "./bufferMessages";
+import { bufferMessages, type MyContext } from "./bufferMessages";
 import { image, talk } from "./ai";
+import { hydrateFiles } from "@grammyjs/files";
 
-let bot: Bot<Context, Api<RawApi>> 
+
+let bot: Bot<MyContext, Api<RawApi>> 
 
 export function getBot(){
     if (!bot) {
-        bot = new Bot(getOrThrow("BOT_TOKEN")); 
+        bot = new Bot<MyContext>(getOrThrow("BOT_TOKEN")); 
         void setupBot(bot)
     }
     return bot
 }
 
-async function setupBot(bot: Bot<Context, Api<RawApi>>){
+async function setupBot(bot: Bot<MyContext, Api<RawApi>>){
+    bot.api.config.use(hydrateFiles(bot.token));
     bot.use(bufferMessages);
     bot.use(authorizedUsers);
 
@@ -47,9 +50,9 @@ How can I help you today?`,{parse_mode: 'HTML'})
     })
 
 
-    bot.on("message:text", async (ctx) => {
+    bot.on(["message:text", "message:photo"], async (ctx) => {
         try {
-            const reply = await talk({ text: ctx.message.text, chatId: ctx.chat.id });
+            const reply = await talk({ chatId: ctx.chat.id });
             ctx.reply(reply ?? "I'm sorry, I don't understand", {
               parse_mode: "HTML",
             });
@@ -60,16 +63,6 @@ How can I help you today?`,{parse_mode: 'HTML'})
             );
         }
     })
-
-    // bot.on("message:photo", async (ctx) => {
-    //     try {
-    //         const photoLink = await bot.telegram.getFileLink(
-    //             ctx.message.photo[0].file_id,
-    //         );
-    //     } catch (e) {
-            
-    //     }
-    // })
 
     // Set bot commands
     bot.api.setMyCommands([

@@ -37,7 +37,7 @@ export async function image({ text }: { text: string }) {
     return img.data[0].url;
 }
 
-export async function talk({text, chatId}:{text: string, chatId: number}): Promise<string>{
+export async function talk({chatId}:{chatId: number}): Promise<string>{
     const messages = getBufferedMessages(chatId);
     
     const response = await generateText({

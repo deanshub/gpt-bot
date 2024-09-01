@@ -1,10 +1,21 @@
 import type { Context, NextFunction } from "grammy";
 import { getOrThrow } from "./utils";
+import { readFile } from "node:fs/promises";
+import type { FileFlavor } from "@grammyjs/files";
+import type { CoreUserMessage } from "ai";
 
-export interface Message {
-    content: string;
+export type MyContext = FileFlavor<Context>;
+
+export type Content  = {
+    type: "text"
+    text: string
+} | {
+    type: "image"
+    image: Buffer
+}
+    
+export interface Message extends CoreUserMessage {
     timestamp: number;
-    role: "user" | "assistant";
 }
 
 const bufferedMessages = new Map<number, Message[]>();
@@ -17,7 +28,20 @@ const timeframeInMinutes = Number(getOrThrow('BUFFER_MESSAGES_TIMEFRAME')) * 60 
 export async function bufferMessages(
     ctx: Context,
     next: NextFunction): Promise<void> {
-    if (ctx.message?.text && ctx.chat?.id) {
+    const content: Content[] = []
+    if (ctx.chat?.id){
+        if (ctx.message?.text) {
+            content.push({
+                type: "text",
+                text: ctx.message.text,
+            })
+        }
+        if (ctx.message?.photo) {
+            content.push({
+                type: "image",
+                image: await getFile(ctx as MyContext),
+            })
+        }
         const chatId = ctx.chat?.id;
         if (!bufferedMessages.has(chatId)) {
             bufferedMessages.set(chatId, []);
@@ -25,11 +49,12 @@ export async function bufferMessages(
         const messages = bufferedMessages.get(chatId)!;
         removeMessagesOlderThanTimeframe(messages, timeframeInMinutes);
         messages.push({
-            content: ctx.message.text,
+            content,
             timestamp: Date.now(),
             role: "user",
         });
     }
+
     await next();
 }
 
@@ -43,11 +68,18 @@ function removeMessagesOlderThanTimeframe(
     }
 }
 
-export function getBufferedMessages(chatId: undefined|number): Message[] {
+export function getBufferedMessages(chatId: undefined|number): CoreUserMessage[] {
     if (!chatId || !bufferedMessages.has(chatId)) {
         return [];
     }
     const messages = bufferedMessages.get(chatId)!;
     removeMessagesOlderThanTimeframe(messages, timeframeInMinutes);
     return messages;
+}
+
+async function getFile(ctx: MyContext): Promise<Buffer>{
+    const file = await ctx.getFile();
+    const path = await file.download();
+    const fileBuffer = await readFile(path)
+    return fileBuffer
 }
