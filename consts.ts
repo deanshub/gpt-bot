@@ -11,3 +11,4 @@ export const KEYBOARD = {
 
 export const SchedulingHeader = "Should I schedule this message?"
 export const SchedulingSeperator = "---~~~~~~---"
+export const ScheduledMessageHeader = "Scheduled Messages:"

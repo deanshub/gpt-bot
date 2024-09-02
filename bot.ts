@@ -5,9 +5,9 @@ import { authorizedUsers, getAdminChatId } from "./authorizedUsers";
 import { bufferMessages, type MyContext } from "./bufferMessages";
 import { image, talk } from "./ai";
 import { hydrateFiles } from "@grammyjs/files";
-import { KEYBOARD, SchedulingHeader, SchedulingSeperator } from "./consts";
+import { KEYBOARD, ScheduledMessageHeader, SchedulingHeader, SchedulingSeperator } from "./consts";
 import schedule from "node-schedule";
-import { isAfter, toDate } from "date-fns";
+import { isAfter } from "date-fns";
 
 let bot: Bot<MyContext, Api<RawApi>> 
 
@@ -46,29 +46,21 @@ How can I help you today?`,{parse_mode: 'HTML'})
         if (originalMessage && scheduleTime) {
             try {
                 // Parse the schedule time string to a Date object
-                const scheduledDate = toDate(scheduleTime.replace('at ', '').trim());
-                // const formattedDate = format(add(scheduledDate, {hours: 2}), 'yyyy-MM-dd HH:mm:ss')
-                // const formattedDate = scheduledDate.getTime()
-                console.log(scheduledDate)
-
+                const scheduledDate = new Date(scheduleTime.replace('at ', '').trim());
                 if (isAfter(scheduledDate, new Date())){
-                    // Send the message with the scheduled time
                     const job = schedule.scheduleJob(scheduledDate, () => {
-                        console.log("Sending message")
-                        ctx.api.sendMessage(ctx.chat!.id, originalMessage.trim())
+                        ctx.api.sendMessage(ctx.chat!.id, `${ScheduledMessageHeader}\n${originalMessage.trim()}`)
                     })
+                    // await ctx.api.sendMessage(ctx.chat!.id, originalMessage.trim(), {
+                    //     // @ts-expect-error-next-line
+                    //     schedule_date: scheduledDate.toUTCString()
+                    // })
                 }else{
                     setTimeout(() => {
                         ctx.api.sendMessage(ctx.chat!.id, originalMessage.trim())
-                    })
+                    }, 0)
                 }
 
-
-                // await ctx.api.sendMessage(ctx.chat!.id, originalMessage.trim(), {
-                    // schedule_date: formattedDate
-                // }
-
-                // await ctx.editMessageText("Message has been scheduled successfully.");
                 await ctx.reply("Message has been scheduled successfully.", {
                     reply_parameters: {
                         message_id: ctx.callbackQuery.message!.message_id
@@ -76,12 +68,15 @@ How can I help you today?`,{parse_mode: 'HTML'})
                 })
             } catch (error) {
                 console.error("Error scheduling message:", error);
-                // await ctx.editMessageText("Failed to schedule the message. Please try again.");
                 await ctx.reply("Failed to schedule the message. Please try again.", {
                     reply_parameters: {
                         message_id: ctx.callbackQuery.message!.message_id
                     }
                 })
+            } finally {
+                await ctx.editMessageText(ctx.callbackQuery.message!.text!, {
+                    reply_markup: undefined // This removes the inline keyboard
+                });
             }
         } else {
             await ctx.editMessageText("Failed to schedule the message due to missing information.");
@@ -110,9 +105,11 @@ How can I help you today?`,{parse_mode: 'HTML'})
     bot.on(["message:text", "message:photo"], async (ctx) => {
         try {
             const reply = await talk({ chatId: ctx.chat.id });
-            ctx.reply(reply ?? "I'm sorry, I don't understand", {
-              parse_mode: "HTML",
-            });
+            if (reply) {
+                ctx.reply(reply, {
+                parse_mode: "HTML",
+                });
+            }
           } catch (e) {
             console.error(e);
             ctx.reply(

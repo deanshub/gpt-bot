@@ -1,7 +1,6 @@
 import { InlineKeyboard } from "grammy";
 import { getBot } from "./bot"
 import { KEYBOARD, SchedulingHeader, SchedulingSeperator } from "./consts";
-import { format } from "date-fns";
 
 
 const promptScheduleMessageInlineKeyboard = new InlineKeyboard()
@@ -20,9 +19,9 @@ export async function promptScheduleMessage(chatId: number, message: string, min
 
     let scheduleTime = "";
     if (minutesInFuture){
-        scheduleTime = format(new Date(Date.now() + minutesInFuture * 60 * 1000), 'yyyy-MM-dd HH:mm:ss');
+        scheduleTime = new Date(Date.now() + minutesInFuture * 60 * 1000).toString();
     } else if (scheduleDate){
-        scheduleTime = format(scheduleDate, 'yyyy-MM-dd HH:mm:ss');
+        scheduleTime = scheduleDate.toString()
     }
     
     await bot.api.sendMessage(chatId, `${SchedulingHeader}

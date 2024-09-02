@@ -41,6 +41,12 @@ export async function bufferMessages(
                 type: "image",
                 image: await getFile(ctx as MyContext),
             })
+            if (ctx.message.caption){
+                content.push({
+                    type: "text",
+                    text: ctx.message.caption,
+                })
+            }
         }
         const chatId = ctx.chat?.id;
         if (!bufferedMessages.has(chatId)) {
