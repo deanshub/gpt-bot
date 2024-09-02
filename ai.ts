@@ -48,11 +48,11 @@ export async function talk({chatId}:{chatId: number}): Promise<string>{
         messages,
         tools: {
           scheduleMessage: tool({
-            description: "Schedule a message to be sent later",
+            description: `Schedule a message to be sent later, the current time is ${new Date().toString()}`,
             parameters: z.object({
               message: z.string().describe("The message to be sent"),
               minutesInFuture: z.optional(z.number().min(1)).describe("The number of minutes in the future to schedule the message"),
-              scheduleDate: z.optional(z.date()).describe("The date and time to schedule the message"),
+              scheduleDate: z.optional(z.string()).describe("The date and time to schedule the message"),
             }),
             execute: async ({ message, minutesInFuture, scheduleDate }) => {
               await promptScheduleMessage(chatId, message, minutesInFuture, scheduleDate)

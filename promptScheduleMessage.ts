@@ -8,7 +8,7 @@ const promptScheduleMessageInlineKeyboard = new InlineKeyboard()
     .text(KEYBOARD.ScheduleMessagePromptDecline.text, KEYBOARD.ScheduleMessagePromptDecline.callback_data)
 
 
-export async function promptScheduleMessage(chatId: number, message: string, minutesInFuture?: number, scheduleDate?: Date){
+export async function promptScheduleMessage(chatId: number, message: string, minutesInFuture?: number, scheduleDate?: string){
     const bot = getBot()
     // await bot.api.sendMessage(chatId, message, {
     //     schedule_date: scheduleTime,
@@ -21,7 +21,7 @@ export async function promptScheduleMessage(chatId: number, message: string, min
     if (minutesInFuture){
         scheduleTime = new Date(Date.now() + minutesInFuture * 60 * 1000).toString();
     } else if (scheduleDate){
-        scheduleTime = scheduleDate.toString()
+        scheduleTime = scheduleDate
     }
     
     await bot.api.sendMessage(chatId, `${SchedulingHeader}
