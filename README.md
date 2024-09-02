@@ -6,8 +6,8 @@
 - [x] Schedule messages
 - [x] Image generation
 - [x] Image reading (including captions)
-- [ ] List scheduled messages
-- [ ] Store scheduled messages in database
+- [x] List scheduled messages
+- [x] Store scheduled messages in database
 
 ## Local setup
 
@@ -18,6 +18,7 @@ OPENAI_API_KEY=sk-...
 BOT_TOKEN=...
 AUTHORIZED_USERS=telegram_user_ids_seperated_by_commas
 BUFFER_MESSAGES_TIMEFRAME=60
+DB_PATH=messages.db
 ```
 
 To install dependencies:
@@ -53,5 +54,8 @@ services:
             BOT_TOKEN: 'TOKEN_HERE'
             AUTHORIZED_USERS: 'ID1,ID2'
             BUFFER_MESSAGES_TIMEFRAME: '60'
+            DB_PATH: '/media/external/messages.db'
+        volumes:
+            - /media/external:/media/external
         privileged: true
 ```

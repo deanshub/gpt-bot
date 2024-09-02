@@ -8,12 +8,15 @@ import { hydrateFiles } from "@grammyjs/files";
 import { KEYBOARD, ScheduledMessageHeader, SchedulingHeader, SchedulingSeperator } from "./consts";
 import schedule from "node-schedule";
 import { isAfter } from "date-fns";
+import { deleteScheduledMessage, getScheduledMessages, getScheduledMessagesOfChat, initDb, storeScheduledMessage } from "./db";
 
 let bot: Bot<MyContext, Api<RawApi>> 
 
 export function getBot(){
     if (!bot) {
+        initDb()
         bot = new Bot<MyContext>(getOrThrow("BOT_TOKEN")); 
+        loadScheduledMessages()
         void setupBot(bot)
     }
     return bot
@@ -33,6 +36,16 @@ How can I help you today?`,{parse_mode: 'HTML'})
     })
     bot.command("help", (ctx) => ctx.reply("You can talk to me or command me to image with /img"))
 
+    bot.command("schedule", async (ctx) => {
+        const chatId = ctx.chat.id
+        const messages = await getScheduledMessagesOfChat(chatId)
+        if (messages.length === 0){
+            await ctx.reply("No messages scheduled")
+        }
+        for (const message of messages){
+            await ctx.reply(`${message.message}\n\nScheduled at ${message.schedule_time}`)
+        }
+    })
     bot.callbackQuery(KEYBOARD.ScheduleMessagePromptDecline.callback_data, async (ctx) => {
         await ctx.answerCallbackQuery("Message scheduling cancelled.");
         await ctx.deleteMessage();
@@ -48,9 +61,12 @@ How can I help you today?`,{parse_mode: 'HTML'})
                 // Parse the schedule time string to a Date object
                 const scheduledDate = new Date(scheduleTime.replace('at ', '').trim());
                 if (isAfter(scheduledDate, new Date())){
-                    const job = schedule.scheduleJob(scheduledDate, () => {
+                    const jobId = crypto.randomUUID()
+                    schedule.scheduleJob(scheduledDate, () => {
                         ctx.api.sendMessage(ctx.chat!.id, `${ScheduledMessageHeader}\n${originalMessage.trim()}`)
+                        deleteScheduledMessage(jobId)
                     })
+                    await storeScheduledMessage(originalMessage.trim(), scheduledDate, ctx.chat!.id, jobId)
                     // await ctx.api.sendMessage(ctx.chat!.id, originalMessage.trim(), {
                     //     // @ts-expect-error-next-line
                     //     schedule_date: scheduledDate.toUTCString()
@@ -122,9 +138,20 @@ How can I help you today?`,{parse_mode: 'HTML'})
     bot.api.setMyCommands([
         { command: "start", description: "Start the bot" },
         { command: "help", description: "Show help" },
+        { command: "schedule", description: "Show scheduled messages" },
         { command: "img", description: "Generate an image" },
     ]);
 
     bot.api.sendMessage(getAdminChatId(), "Bot started")
 }
 
+
+async function loadScheduledMessages(){
+    const messages = await getScheduledMessages()
+    for (const message of messages){
+        schedule.scheduleJob(message.schedule_time, () => {
+            bot.api.sendMessage(message.chat_id, message.message)
+            deleteScheduledMessage(message.job_id)
+        })
+    }
+}
