@@ -176,3 +176,6 @@ dist
 
 # Database
 scheduled_messages.sqlite
+
+
+package-lock.json

@@ -37,9 +37,10 @@ async function setupBot(bot: Bot<MyContext, Api<RawApi>>) {
   bot.use(authorizedUsers);
 
   bot.command('start', async (ctx) => {
+    const packageJson = JSON.parse(await readFile('package.json', 'utf-8'));
     await ctx.reply(
       `Hello ${getFullName(ctx)}👋
-I am your AI helper 🧝‍♀️
+I am your AI helper 🧝‍♀️ v${packageJson.version}
 How can I help you today?`,
       { parse_mode: 'HTML' }
     );
