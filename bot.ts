@@ -21,6 +21,8 @@ import { getOrThrow } from './utils';
 
 let bot: Bot<MyContext, Api<RawApi>>;
 
+const packageJson = JSON.parse(await readFile('package.json', 'utf-8'));
+
 export function getBot() {
   if (!bot) {
     initDb();
@@ -37,7 +39,6 @@ async function setupBot(bot: Bot<MyContext, Api<RawApi>>) {
   bot.use(authorizedUsers);
 
   bot.command('start', async (ctx) => {
-    const packageJson = JSON.parse(await readFile('package.json', 'utf-8'));
     await ctx.reply(
       `Hello ${getFullName(ctx)}👋
 I am your AI helper 🧝‍♀️ v${packageJson.version}
@@ -122,10 +123,13 @@ How can I help you today?`,
       return;
     }
     try {
-      const img = await image({ text });
-      if (!img) {
+      const imgBase64 = await image({ text });
+      if (!imgBase64) {
         throw new Error('No image generated');
       }
+      const imgBuffer = Buffer.from(imgBase64, 'base64');
+      const imgUint8Array = new Uint8Array(imgBuffer);
+      const img = new InputFile(imgUint8Array, 'image.png');
       ctx.replyWithPhoto(img);
     } catch (error) {
       console.error(error);
@@ -194,7 +198,7 @@ How can I help you today?`,
     { command: 'speak', description: 'Generate an audio' },
   ]);
 
-  bot.api.sendMessage(getAdminChatId(), 'Bot started');
+  bot.api.sendMessage(getAdminChatId(), `Bot started v${packageJson.version}`);
 }
 
 async function loadScheduledMessages() {
