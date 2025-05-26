@@ -1,7 +1,7 @@
-import { getBot } from "./bot"
+import { getBot } from './bot';
 
 async function init() {
-    getBot().start()
+  getBot().start();
 }
 
-init()
+init();
