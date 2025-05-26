@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { hydrateFiles } from '@grammyjs/files';
 import { isAfter } from 'date-fns';
-import { Bot } from 'grammy';
+import { Bot, InputFile } from 'grammy';
 import type { Api, RawApi } from 'grammy';
 import schedule from 'node-schedule';
 import { image, t2s, talk, transcribe } from './ai';
@@ -139,8 +139,15 @@ How can I help you today?`,
       ctx.reply('Please provide a text to generate an audio');
       return;
     }
-    const audio = await t2s({ text });
-    ctx.replyWithAudio(audio);
+    try {
+      const audioBase64 = await t2s({ text });
+      const audioBuffer = Buffer.from(audioBase64, 'base64');
+      const audioUint8Array = new Uint8Array(audioBuffer);
+      await ctx.replyWithAudio(new InputFile(audioUint8Array, 'speech.mp3'));
+    } catch (error) {
+      console.error(error);
+      ctx.reply("I'm sorry, had an error processing your request. Please try again later.");
+    }
   });
 
   bot.on(['message:text', 'message:photo'], async (ctx) => {
