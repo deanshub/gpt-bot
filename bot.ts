@@ -123,7 +123,7 @@ How can I help you today?`,
       return;
     }
     try {
-      const imgBase64 = await image({ text });
+      const imgBase64 = await image({ text, chatId: ctx.chat.id });
       if (!imgBase64) {
         throw new Error('No image generated');
       }
@@ -144,7 +144,7 @@ How can I help you today?`,
       return;
     }
     try {
-      const audioBase64 = await t2s({ text });
+      const audioBase64 = await t2s({ text, chatId: ctx.chat.id });
       const audioBuffer = Buffer.from(audioBase64, 'base64');
       const audioUint8Array = new Uint8Array(audioBuffer);
       await ctx.replyWithAudio(new InputFile(audioUint8Array, 'speech.mp3'));

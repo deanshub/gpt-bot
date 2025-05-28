@@ -1,24 +1,30 @@
 import { readFile } from 'node:fs/promises';
 import type { FileFlavor } from '@grammyjs/files';
-import type { CoreUserMessage } from 'ai';
+import type { CoreAssistantMessage, CoreUserMessage, DataContent } from 'ai';
 import type { Context, NextFunction } from 'grammy';
 import { getOrThrow } from './utils';
 
 export type MyContext = FileFlavor<Context>;
 
-export type Content =
-  | {
-      type: 'text';
-      text: string;
-    }
-  | {
-      type: 'image';
-      image: Buffer;
-    };
+type FileContent = {
+  type: 'file';
+  data: DataContent;
+  mimeType: string;
+};
+type TextContent = {
+  type: 'text';
+  text: string;
+};
+type ImageContent = {
+  type: 'image';
+  image: Buffer;
+};
 
-export interface Message extends CoreUserMessage {
+export type Content = TextContent | ImageContent | FileContent;
+
+export type Message = {
   timestamp: number;
-}
+} & (CoreUserMessage | CoreAssistantMessage);
 
 const bufferedMessages = new Map<number, Message[]>();
 const timeframeInMinutes = Number(getOrThrow('BUFFER_MESSAGES_TIMEFRAME')) * 60 * 1000;
@@ -71,13 +77,26 @@ function removeMessagesOlderThanTimeframe(messages: Message[], timeframeInMinute
   }
 }
 
-export function getBufferedMessages(chatId: undefined | number): CoreUserMessage[] {
+export function getBufferedMessages(chatId: undefined | number): Message[] {
   if (!chatId || !bufferedMessages.has(chatId)) {
     return [];
   }
   const messages = bufferedMessages.get(chatId)!;
   removeMessagesOlderThanTimeframe(messages, timeframeInMinutes);
   return messages;
+}
+
+export function addAssistantMessage(chatId: number, content: FileContent | TextContent): void {
+  if (!bufferedMessages.has(chatId)) {
+    bufferedMessages.set(chatId, []);
+  }
+  const messages = bufferedMessages.get(chatId)!;
+  removeMessagesOlderThanTimeframe(messages, timeframeInMinutes);
+  messages.push({
+    content: [content],
+    timestamp: Date.now(),
+    role: 'assistant',
+  });
 }
 
 async function getFile(ctx: MyContext): Promise<Buffer> {

@@ -7,7 +7,7 @@ import {
   tool,
 } from 'ai';
 import { z } from 'zod';
-import { getBufferedMessages } from './bufferMessages';
+import { addAssistantMessage, getBufferedMessages } from './bufferMessages';
 import { promptScheduleMessage } from './promptScheduleMessage';
 
 // export async function image({text}:{text: string}): Promise<string>{
@@ -22,11 +22,27 @@ import { promptScheduleMessage } from './promptScheduleMessage';
 //     throw new Error("Not implemented");
 // }
 
-export async function image({ text }: { text: string }) {
+export async function image({
+  text,
+  chatId,
+}: {
+  text: string;
+  chatId?: number;
+}) {
   const { image } = await generateImage({
     model: openai.image('dall-e-3'),
     prompt: text,
   });
+
+  // If chatId is provided, add the image to the buffer
+  if (chatId !== undefined) {
+    addAssistantMessage(chatId, {
+      type: 'file',
+      data: image.base64,
+      mimeType: 'image/png',
+    });
+  }
+
   return image.base64;
 }
 
@@ -55,6 +71,12 @@ export async function talk({ chatId }: { chatId: number }): Promise<string> {
     },
   });
 
+  // Add the assistant's response to the buffer
+  addAssistantMessage(chatId, {
+    type: 'text',
+    text: response.text,
+  });
+
   return response.text;
 }
 
@@ -66,11 +88,21 @@ export async function transcribe({ audio }: { audio: Buffer }) {
   return text;
 }
 
-export async function t2s({ text }: { text: string }) {
+export async function t2s({ text, chatId }: { text: string; chatId?: number }) {
   const { audio } = await generateSpeech({
     model: openai.speech('tts-1'),
     text,
     voice: 'alloy',
   });
+
+  // If chatId is provided, add the audio response to the buffer as text
+  if (chatId !== undefined) {
+    addAssistantMessage(chatId, {
+      type: 'file',
+      data: audio.base64,
+      mimeType: 'audio/mpeg',
+    });
+  }
+
   return audio.base64;
 }
