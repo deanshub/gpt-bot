@@ -156,7 +156,7 @@ How can I help you today?`,
 
   bot.on(['message:text', 'message:photo'], async (ctx) => {
     try {
-      const reply = await talk({ chatId: ctx.chat.id });
+      const reply = await talk({ chatId: ctx.chat.id, ctx });
       if (reply) {
         ctx.reply(reply, {
           parse_mode: 'HTML',

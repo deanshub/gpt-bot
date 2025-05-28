@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 import { addAssistantMessage, getBufferedMessages } from './bufferMessages';
 import { promptScheduleMessage } from './promptScheduleMessage';
+import { InputFile, type Context } from 'grammy';
 
 // export async function image({text}:{text: string}): Promise<string>{
 //     // const response = await generateObject({
@@ -46,7 +47,13 @@ export async function image({
   return image.base64;
 }
 
-export async function talk({ chatId }: { chatId: number }): Promise<string> {
+export async function talk({
+  chatId,
+  ctx,
+}: {
+  chatId: number;
+  ctx: Context;
+}): Promise<string> {
   const messages = getBufferedMessages(chatId);
 
   const response = await generateText({
@@ -66,6 +73,22 @@ export async function talk({ chatId }: { chatId: number }): Promise<string> {
         }),
         execute: async ({ message, minutesInFuture, scheduleDate }) => {
           await promptScheduleMessage(chatId, message, minutesInFuture, scheduleDate);
+        },
+      }),
+      generateImage: tool({
+        description: 'Generate an image based on text',
+        parameters: z.object({
+          text: z.string().describe('The text to generate an image from'),
+        }),
+        execute: async ({ text }) => {
+          const imgBase64 = await image({ text, chatId });
+          if (!imgBase64) {
+            throw new Error('No image generated');
+          }
+          const imgBuffer = Buffer.from(imgBase64, 'base64');
+          const imgUint8Array = new Uint8Array(imgBuffer);
+          const img = new InputFile(imgUint8Array, 'image.png');
+          ctx.replyWithPhoto(img);
         },
       }),
     },
