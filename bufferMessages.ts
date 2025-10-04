@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { FileFlavor } from '@grammyjs/files';
-import type { CoreAssistantMessage, CoreUserMessage, DataContent } from 'ai';
+import type { CoreAssistantMessage, CoreUserMessage } from 'ai';
 import type { Context, NextFunction } from 'grammy';
 import { getOrThrow } from './utils';
 
@@ -8,8 +8,8 @@ export type MyContext = FileFlavor<Context>;
 
 type FileContent = {
   type: 'file';
-  data: DataContent;
-  mimeType: string;
+  data: string;
+  mediaType: string;
 };
 type TextContent = {
   type: 'text';
@@ -17,7 +17,7 @@ type TextContent = {
 };
 type ImageContent = {
   type: 'image';
-  image: Buffer;
+  image: string;
 };
 
 export type Content = TextContent | ImageContent | FileContent;
@@ -43,9 +43,10 @@ export async function bufferMessages(ctx: Context, next: NextFunction): Promise<
       });
     }
     if (ctx.message?.photo) {
+      const imageBuffer = await getFile(ctx as MyContext);
       content.push({
         type: 'image',
-        image: await getFile(ctx as MyContext),
+        image: imageBuffer.toString('base64'),
       });
       if (ctx.message.caption) {
         content.push({
